@@ -8,7 +8,7 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   const app = express();
 
   // Set the network port
-  const port = process.env.PORT || 8082;
+  const port = process.env.PORT || 8080;
   
   // Use the body parser middleware for post requests
   app.use(bodyParser.json());
@@ -30,6 +30,21 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   /**************************************************************************** */
 
   //! END @TODO1
+
+  app.get("/filteredimage", async (req,res)=>{
+    const {image_url} = req.query;
+    if(!image_url){
+      res.status(400).send("Usage: Request must contain image_url.");
+    }
+    console.log(image_url);
+    filterImageFromURL(image_url.toString()).then((filteredImage) =>{
+      res.sendFile(filteredImage, () => deleteLocalFiles([filteredImage]));
+    }).catch(error=>{
+      res.status(500).send("Error: Something went wrong...");
+      console.log(error);
+    })
+  
+  })
   
   // Root Endpoint
   // Displays a simple message to the user
