@@ -1,35 +1,46 @@
 import 'source-map-support/register'
 
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
-import { DynamoDB } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  DeleteCommand,
+} from "@aws-sdk/lib-dynamodb";
 import middy from "@middy/core"
 import cors from "@middy/http-cors"
 import httpErrorHandler from '@middy/http-error-handler'
 
 //import { deleteTodo } from '../../businessLogic/todos'
 import { getUserId } from '../utils'
-const docClient:DynamoDB = new DynamoDB({region:"us-west-1"});
+const docClient:DynamoDBClient = new DynamoDBClient({region: process.env.REGION});
+const dynamo = DynamoDBDocumentClient.from(docClient);
 export const handler = middy(
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     const todoId = event.pathParameters.todoId
     const userId = getUserId(event);
-    let statusCode = 200;
-    try{
-        const deletedItem = await docClient.deleteItem({
+    console.log("USER ID: ", userId);
+    try {
+      const deletedItem = await dynamo.send(new DeleteCommand({
         TableName: process.env.TODOS_TABLE,
-        Key: todoId as any,
+        Key: {todoId, userId},
         ConditionExpression:"userId = :userId",
-        ExpressionAttributeValues: {":userId": {"S":userId}}
-      })
-      statusCode = deletedItem.$metadata.httpStatusCode;
-    }catch(e){
-      console.log(e);
+        ExpressionAttributeValues: {
+          ":userId": userId
+        } 
+      }))
+      return {
+        statusCode: deletedItem.$metadata.httpStatusCode,
+        body: ''
+      }
+    } catch (e) {
+      console.error(e);
+      return {
+        statusCode: e.$metadata.httpStatusCode,
+        body: JSON.stringify(e.name)
+      }
     }
     
-    return {
-      statusCode: statusCode,
-      body: ''
-    }
+
   }
 )
 
