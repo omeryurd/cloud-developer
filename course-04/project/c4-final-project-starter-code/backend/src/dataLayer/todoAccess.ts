@@ -90,7 +90,7 @@ export async function updateAttachment(todoId: string, userId: string) {
   return response
 }
 
-
+// From https://rdavis.io/articles/large-dynamodb-queries
 export async function * queryGenerator (userId: string) {
 
     let LastEvaluatedKey;
